@@ -4,8 +4,19 @@
 
 {% block content %}
 
-<h1 class="mb-4">Edit CafeName </h1>
+<h1 class="mb-4">Edit {{cafe.name}} </h1>
 
-<!-- form goes here -->>
+<form method="POST">
+
+  {{ form.hidden_tag() }} {% for field in form if field.widget.input_type !=
+  'hidden' %}
+  <p>
+    {{ field.label }} {{ field }} {% for error in field.errors %} {{ error }} {%
+    endfor %}
+  </p>
+  {% endfor %}
+
+  <button type="submit">Edit Cafe</button>
+</form>
 
 {% endblock %}

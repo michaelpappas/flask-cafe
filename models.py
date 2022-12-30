@@ -8,6 +8,8 @@ from flask_sqlalchemy import SQLAlchemy
 bcrypt = Bcrypt()
 db = SQLAlchemy()
 
+DEFAULT_PROFILE_IMAGE_URL = "/static/images/default-pic.png"
+
 
 class City(db.Model):
     """Cities for cafes."""
@@ -28,6 +30,10 @@ class City(db.Model):
         db.String(2),
         nullable=False,
     )
+    @classmethod
+    def get_cities(self):
+        """ returns list of tuples with city code and city name """
+        return [(city.code, city.name) for city in City.query.all()]
 
 
 class Cafe(db.Model):
@@ -77,11 +83,122 @@ class Cafe(db.Model):
     def __repr__(self):
         return f'<Cafe id={self.id} name="{self.name}">'
 
+    @classmethod
     def get_city_state(self):
         """Return 'city, state' for cafe."""
 
         city = self.city
         return f'{city.name}, {city.state}'
+
+
+class User(db.Model):
+    """ User information """
+
+    __tablename__ = 'users'
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    username = db.Column(
+        db.Text,
+        nullable=False,
+        unique = True
+    )
+
+    admin = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False
+    )
+
+    email = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    first_name = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    last_name = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    description = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    image_url = db.Column(
+        db.Text,
+        default=DEFAULT_PROFILE_IMAGE_URL
+    )
+
+    password = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    def hash_password(cls, password):
+        """ Returns hashed password for changing user password"""
+
+        hashed_pwd = bcrypt.generate_password_hash(password).decode('UTF-8')
+
+        return hashed_pwd
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    @classmethod
+    def register(cls,
+                username,
+                first_name,
+                last_name,
+                description,
+                email,
+                password,
+                admin=False,
+                image_url=None):
+        """ Register user w/hashed password & return user."""
+
+        hashed = bcrypt.generate_password_hash(password).decode('utf8')
+
+        user = cls(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            description=description,
+            email=email,
+            password=hashed,
+            admin = admin,
+            image_url=image_url
+        )
+
+        db.session.add(user)
+        return user
+
+    @classmethod
+    def login(cls, username, pwd):
+        """Validate that user exists & password is correct.
+
+        Return user if valid; else return False.
+        """
+
+        u = cls.query.filter_by(username=username).one_or_none()
+
+        if u and bcrypt.check_password_hash(u.password, pwd):
+            return u
+        else:
+            return False
+
+
+
+
+
 
 
 def connect_db(app):
